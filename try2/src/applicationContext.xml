@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+     http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/tx
+     http://www.springframework.org/schema/tx/spring-tx.xsd
+     http://www.springframework.org/schema/aop
+     http://www.springframework.org/schema/aop/spring-aop.xsd">
+	<bean id="dataSource"
+        class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName"
+            value="com.mysql.jdbc.Driver">
+        </property>
+        <property name="url"
+            value="jdbc:mysql://localhost:3306/zh">
+        </property>
+        <property name="username" value="root"></property>
+        <property name="password" value="admin"></property>
+    </bean>
+    <bean id="sessionFactory"
+        class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <property name="dataSource">
+            <ref bean="dataSource" />
+        </property>
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">
+                    org.hibernate.dialect.MySQLDialect
+                </prop>
+                <prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+            </props>
+        </property>
+        <property name="mappingResources">
+            <list>
+                <value>cap/bean/Admin.hbm.xml</value>
+            </list>
+        </property>
+    </bean>
+    <bean id="txManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="find*" read-only="true" propagation="REQUIRED" />
+			<tx:method name="*"  propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut id="transactionPointcut" expression="execution(* cap.dao.impl.*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="transactionPointcut" />
+	</aop:config>
+	<bean id="adminDAO" class="cap.dao.impl.AdminDAOImpl">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<bean id="adminService" class="cap.service.impl.AdminServiceImpl">
+		<property name="adminDAO" ref="adminDAO"/>
+	</bean>
+	
+	<bean id="adminAction" class="cap.action.AdminAction" scope="prototype">
+		<property name="adminService" ref="adminService"/>
+	</bean>
+</beans>
